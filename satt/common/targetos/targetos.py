@@ -119,14 +119,6 @@ class TargetOs(object):
             print('   dir   - kernel')
             print('   file  - System.map')
             print('   file  - vmlinux.*\n')
-        elif path_type == 'sat_path_kernel':
-            print('\n   Hint: folder which contains vmlinux and System.map files')
-            print('   dir   - arch')
-            print('   dir   - drivers')
-            print('   dir   - include')
-            print('   dir   - kernel')
-            print('   file  - System.map')
-            print('   file  - vmlinux.*\n')
         elif path_type == 'sat_path_kernel_src':
             print('\n   Hint: folder which contains kernel sources')
             print('   dir   - arch')
@@ -164,16 +156,20 @@ class TargetOs(object):
                     print('   Path found and looks valid!')
                     return True
                 else:
-                    print(helper.color.BOLD + '   WARNING: Path found, but does not look a valid path!' + helper.color.END)
+                    print(
+                        f'{helper.color.BOLD}   WARNING: Path found, but does not look a valid path!{helper.color.END}'
+                    )
             else:
-                print(helper.color.BOLD + '   ERROR: Path does not found?' + helper.color.END)
+                print(f'{helper.color.BOLD}   ERROR: Path does not found?{helper.color.END}')
 
             # Pass trought, some path was wrong
             selection = raw_input("   Do you want to give that path again? [Y/n] ")
-            if selection == 'Y' or selection == 'y' or selection == None or selection == '':
-                return False
-            return True
-
+            return (
+                selection != 'Y'
+                and selection != 'y'
+                and selection is not None
+                and selection != ''
+            )
         else:
             print('   ERROR in validate_target_path validation')
             raise
@@ -184,9 +180,7 @@ class TargetOs(object):
 
     def is_os(self, os_name):
         self.debug_print("TargetOs::is_os")
-        if self.get_name() == os_name:
-            return True
-        return False
+        return self.get_name() == os_name
 
     def copy_binaries(self):
         ''' Virtual function

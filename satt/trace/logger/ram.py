@@ -45,7 +45,7 @@ class RamLogger(Logger):
         self.args = self._parser.parse_args()
 
         if self.args.buffers:
-            self._kernel_module_parameters += " max_trace_buffers=" + self.args.buffers
+            self._kernel_module_parameters += f" max_trace_buffers={self.args.buffers}"
 
     def initialize(self):
         self._debug_print("RamLogger::initialize")

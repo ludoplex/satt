@@ -59,43 +59,57 @@ def get_separator(filename):
 
 def importCSV(insert_id, fn, fpath):
     global cpu_count
-    schema = 't' + str(insert_id)
+    schema = f't{str(insert_id)}'
 
-    curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                 '.tgid (id serial, tgid int4, pid int4, name varchar(256), color varchar(7), PRIMARY KEY(id))')
-    filename = fn + '.satp'
+    curs.execute(
+        f'CREATE TABLE IF NOT EXISTS {schema}.tgid (id serial, tgid int4, pid int4, name varchar(256), color varchar(7), PRIMARY KEY(id))'
+    )
+    filename = f'{fn}.satp'
     file_columns = ('id', 'tgid', 'pid', 'name')
-    curs.copy_from(file=open(filename), sep='|',
-                   table=schema + '.tgid', columns=file_columns)
+    curs.copy_from(
+        file=open(filename),
+        sep='|',
+        table=f'{schema}.tgid',
+        columns=file_columns,
+    )
     conn.commit()
 
     # id | ts | call stack level | OoT | InT | ins count | call (c/r/e/u) | cpu | thread_id | mod | sym
-    curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                 '.ins (id serial, ts bigint, level smallint, ts_oot bigint, ts_int bigint, ins_count int, ' +
-                 'call varchar(1), cpu smallint, thread_id int, module_id smallint, symbol_id int ) ' +
-                 'with (fillfactor=100)')
-    filename = fn + '.sat0'
+    curs.execute(
+        f'CREATE TABLE IF NOT EXISTS {schema}.ins (id serial, ts bigint, level smallint, ts_oot bigint, ts_int bigint, ins_count int, call varchar(1), cpu smallint, thread_id int, module_id smallint, symbol_id int ) with (fillfactor=100)'
+    )
+    filename = f'{fn}.sat0'
 
     file_columns = ('ts', 'level', 'ts_oot', 'ts_int', 'ins_count', 'call', 'cpu', 'thread_id', 'module_id',
                     'symbol_id')
 
-    curs.copy_from(file=open(filename), sep='|', table=schema + '.ins', columns=file_columns)
+    curs.copy_from(
+        file=open(filename),
+        sep='|',
+        table=f'{schema}.ins',
+        columns=file_columns,
+    )
 
     conn.commit()
 
-    filename = fn + '.satmod'
+    filename = f'{fn}.satmod'
     separator = get_separator(filename)
 
-    curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                 '.module (id serial, module varchar(1024), PRIMARY KEY(id)) with (fillfactor=100)')
-    filename = fn + '.satmod'
+    curs.execute(
+        f'CREATE TABLE IF NOT EXISTS {schema}.module (id serial, module varchar(1024), PRIMARY KEY(id)) with (fillfactor=100)'
+    )
+    filename = f'{fn}.satmod'
     file_columns = ('id', 'module')
-    curs.copy_from(file=open(filename), sep=separator,
-                   table=schema + '.module', columns=file_columns)
+    curs.copy_from(
+        file=open(filename),
+        sep=separator,
+        table=f'{schema}.module',
+        columns=file_columns,
+    )
     conn.commit()
 
     # for backward compatibility to be removed later
-    filename = fn + '.satsym'
+    filename = f'{fn}.satsym'
     separator = get_separator(filename)
 
     # Find longest symbol name
@@ -108,61 +122,69 @@ def importCSV(insert_id, fn, fpath):
                 sep_cnt = line.count(separator)
             if sep_cnt == 1:
                 id_, sym_ = line.split(separator)
-                if longest_sym < len(sym_):
-                    longest_sym = len(sym_)
             else:
                 id_, sym_, fsym_ = line.split(separator)
-                if longest_sym < len(sym_):
-                    longest_sym = len(sym_)
-                if longest_fullsym < len(fsym_):
-                    longest_fullsym = len(fsym_)
-
+                longest_fullsym = max(longest_fullsym, len(fsym_))
+            longest_sym = max(longest_sym, len(sym_))
     file_colums = None
     if sep_cnt == 1:
-        curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                     '.symbol (id serial, symbol varchar(' + str(longest_sym) + '), PRIMARY KEY(id)) with (fillfactor=100)')
+        curs.execute(
+            f'CREATE TABLE IF NOT EXISTS {schema}.symbol (id serial, symbol varchar({str(longest_sym)}), PRIMARY KEY(id)) with (fillfactor=100)'
+        )
         file_columns = ('id', 'symbol')
     else:
-        curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                     '.symbol (id serial, symbol varchar(' + str(longest_sym) + '), fullsymbol varchar(' +
-                     str(longest_fullsym) + '), PRIMARY KEY(id)) with (fillfactor=100)')
+        curs.execute(
+            f'CREATE TABLE IF NOT EXISTS {schema}.symbol (id serial, symbol varchar({str(longest_sym)}), fullsymbol varchar({str(longest_fullsym)}), PRIMARY KEY(id)) with (fillfactor=100)'
+        )
         file_columns = ('id', 'symbol', 'fullsymbol')
-    filename = fn + '.satsym'
-    curs.copy_from(file=open(filename), sep=separator,
-                   table=schema + '.symbol', columns=file_columns)
+    filename = f'{fn}.satsym'
+    curs.copy_from(
+        file=open(filename),
+        sep=separator,
+        table=f'{schema}.symbol',
+        columns=file_columns,
+    )
     conn.commit()
 
-    curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                 '.cbr (ts bigint, cpu smallint, acbr smallint, ecbr smallint, PRIMARY KEY(ts, cpu)) ' +
-                 'with (fillfactor=100)')
-    filename = fn + '.satcbr'
+    curs.execute(
+        f'CREATE TABLE IF NOT EXISTS {schema}.cbr (ts bigint, cpu smallint, acbr smallint, ecbr smallint, PRIMARY KEY(ts, cpu)) with (fillfactor=100)'
+    )
+    filename = f'{fn}.satcbr'
     file_columns = ('ts', 'cpu', 'acbr', 'ecbr')
-    curs.copy_from(file=open(filename), sep='|',
-                   table=schema + '.cbr', columns=file_columns)
+    curs.copy_from(
+        file=open(filename),
+        sep='|',
+        table=f'{schema}.cbr',
+        columns=file_columns,
+    )
     conn.commit()
 
     # Import extra trace info to db
-    if os.path.isfile(fn + '.satstats'):
-        curs.execute('CREATE TABLE IF NOT EXISTS ' + schema +
-                     '.info (key varchar(256), value bigint, info varchar(2048), PRIMARY KEY(key))')
-        filename = fn + '.satstats'
+    if os.path.isfile(f'{fn}.satstats'):
+        curs.execute(
+            f'CREATE TABLE IF NOT EXISTS {schema}.info (key varchar(256), value bigint, info varchar(2048), PRIMARY KEY(key))'
+        )
+        filename = f'{fn}.satstats'
         file_columns = ('key', 'value', 'info')
-        curs.copy_from(file=open(filename), sep='|',
-                       table=schema + '.info', columns=file_columns)
+        curs.copy_from(
+            file=open(filename),
+            sep='|',
+            table=f'{schema}.info',
+            columns=file_columns,
+        )
         conn.commit()
 
     # Import screen shot from the device to DB
-    if os.path.isfile(fpath + '/screen.png'):
-        f = open(fpath + '/screen.png', 'rb')
-        filedata = psycopg2.Binary(f.read())
-        f.close()
+    if os.path.isfile(f'{fpath}/screen.png'):
+        with open(f'{fpath}/screen.png', 'rb') as f:
+            filedata = psycopg2.Binary(f.read())
         curs.execute("INSERT INTO public.screenshots(id, file_data) VALUES (%s,%s)", (insert_id, filedata, ))
         conn.commit()
         curs.execute("""UPDATE public.traces SET screenshot = TRUE WHERE id = %s;""", (insert_id, ))
         conn.commit()
 
     # Calculate global CPU count
-    curs.execute("""select max(cpu) from """ + schema + """.ins""")
+    curs.execute(f"""select max(cpu) from {schema}.ins""")
     conn.commit()
     cpu_count = curs.fetchone()[0] + 1
 
@@ -173,24 +195,26 @@ def importCSV(insert_id, fn, fpath):
 
 
 def bugFixHack1(schema):
-    curs.execute('DELETE FROM ' + schema + '.ins WHERE ts > 2147483646;')
+    curs.execute(f'DELETE FROM {schema}.ins WHERE ts > 2147483646;')
     return
 
 
 def createIndexs(schema):
-    curs.execute('ALTER TABLE ' + schema + '.ins ADD CONSTRAINT id_pk PRIMARY KEY(id);')
-    curs.execute('CREATE INDEX ts_idx ON ' + schema + '.ins USING btree (ts) with (fillfactor=100);')
+    curs.execute(f'ALTER TABLE {schema}.ins ADD CONSTRAINT id_pk PRIMARY KEY(id);')
+    curs.execute(
+        f'CREATE INDEX ts_idx ON {schema}.ins USING btree (ts) with (fillfactor=100);'
+    )
     conn.commit()
-    curs.execute('CREATE INDEX ins_idx ON ' + schema +
-                 '.ins USING btree (thread_id, level, ts, module_id, symbol_id ) with (fillfactor=100);')
+    curs.execute(
+        f'CREATE INDEX ins_idx ON {schema}.ins USING btree (thread_id, level, ts, module_id, symbol_id ) with (fillfactor=100);'
+    )
 
     conn.commit()
 
 
 def RGBToHTMLColor(rgb_tuple):
     """ convert an (R, G, B) tuple to #RRGGBB """
-    hexcolor = '#%02x%02x%02x' % rgb_tuple
-    return hexcolor
+    return '#%02x%02x%02x' % rgb_tuple
 
 
 def createColors(schema):
@@ -207,19 +231,21 @@ def createColors(schema):
     # Every process should have own color
     # Every thead in same process should same color, but different lightning
     processMaxCount = named_cur.rowcount
-    processCounter = 0
-    for row in rows:
+    for processCounter, row in enumerate(rows):
         x = (1.0 / processMaxCount) * processCounter
-        processCounter += 1
         threadCount = len(row.tgids)
         for tc in range(0, threadCount):
             y = 0.0 + (0.4 / threadCount) * tc
             y = 1.0 - y - (0.05 / threadCount)
             z = 200 + (40 / threadCount) + (50 / threadCount * tc)
             # Push color back to DB
-            curs.execute("""UPDATE """ + schema +
-                         """.tgid SET color = (%s) WHERE id = (%s);""",
-                         (RGBToHTMLColor(colorsys.hsv_to_rgb(x, y, z)), row.ids[tc],))
+            curs.execute(
+                f"""UPDATE {schema}.tgid SET color = (%s) WHERE id = (%s);""",
+                (
+                    RGBToHTMLColor(colorsys.hsv_to_rgb(x, y, z)),
+                    row.ids[tc],
+                ),
+            )
 
 
 def helperCreateAvgGraphTable(schema, cpux):
@@ -296,14 +322,14 @@ def getTscTick(schema):
                  ('info', schema,))
     res = curs.fetchone()
     if res[0]:
-        curs.execute("SELECT value from " + schema + ".info WHERE key = 'TSC_TICK'")
+        curs.execute(f"SELECT value from {schema}.info WHERE key = 'TSC_TICK'")
         data = curs.fetchone()[0]
     return int(data)
 
 
 # Find out different infos
 def digTraceInfo(schema, id, trace_path):
-    curs.execute("select max(ts) from " + schema + ".ins")
+    curs.execute(f"select max(ts) from {schema}.ins")
     ts = curs.fetchone()[0]
     tsc_tick = getTscTick(schema)
 
@@ -312,9 +338,7 @@ def digTraceInfo(schema, id, trace_path):
     curs.execute("UPDATE public.traces SET length = %s WHERE id = %s;", (length, id))
     conn.commit()
 
-    # get Build info
-    build_info = getTraceBuildInfo(trace_path)
-    if build_info:
+    if build_info := getTraceBuildInfo(trace_path):
         curs.execute("UPDATE public.traces SET build = %s, device=%s WHERE id = %s;",
                      (build_info['version'] + '/' + build_info['type'], build_info['name'] + '/' +
                       build_info['platform'], id))
@@ -323,11 +347,11 @@ def digTraceInfo(schema, id, trace_path):
 
 #  Load Trace Build info from the file
 def getTraceBuildInfo(trace_path):
-    if os.path.exists(os.path.join(trace_path, "build_info.p")):
-        build_info = pickle.load(open(os.path.join(trace_path, "build_info.p"), "rb"))
-    else:
-        build_info = None
-    return build_info
+    return (
+        pickle.load(open(os.path.join(trace_path, "build_info.p"), "rb"))
+        if os.path.exists(os.path.join(trace_path, "build_info.p"))
+        else None
+    )
 
 
 def main():

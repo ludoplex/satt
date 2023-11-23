@@ -59,7 +59,7 @@ def main():
         elif sys.argv[1][0] == '-':
             satt.parse_options()
         else:
-            print ("Unknown command '" + opt + "'\n")
+            print(f"Unknown command '{opt}" + "'\n")
             satt.print_usage()
 
     else:

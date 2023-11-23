@@ -93,12 +93,9 @@ class sideband_combiner:
             parser = sideband_parser(sb_input, sb_output)
             parsing_ok = parser.parse()
 
-        f = open(self.input_paths_[0], 'rb')
-        sat_ver_data = f.read(12)
-        f.close()
-
-        outf = open(self.output_path_, 'wb')
-        outf.write(sat_ver_data)
-        for i in sorted(self.sb_lines_.keys()):
-            outf.write(self.sb_lines_[i])
-        outf.close()
+        with open(self.input_paths_[0], 'rb') as f:
+            sat_ver_data = f.read(12)
+        with open(self.output_path_, 'wb') as outf:
+            outf.write(sat_ver_data)
+            for i in sorted(self.sb_lines_.keys()):
+                outf.write(self.sb_lines_[i])

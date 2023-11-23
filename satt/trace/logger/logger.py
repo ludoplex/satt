@@ -94,7 +94,7 @@ class Logger(object):
         if self.args.power:
             if 0 < int(self.args.power) <= 1000:
                 self._power_period = self.args.power
-                self._kernel_module_parameters += " power_monitor=" + self.args.power
+                self._kernel_module_parameters += f" power_monitor={self.args.power}"
 
         if self.args.debug:
             self._debug = True
@@ -178,8 +178,7 @@ class Logger(object):
     def get_trace_name(self, msg=""):
         if not msg:
             msg = "Save Trace by giving <<trace name>> or discard trace by pressing <<enter>>? :"
-        trace_name = raw_input(msg)
-        if trace_name:
+        if trace_name := raw_input(msg):
             # Save the Traces
             path = os.getcwd()
             trace_path = os.path.join(path, trace_name)

@@ -104,13 +104,13 @@ class sideband_parser:
     return ok and not self.input_.bad()
 
   def pack_header(self, msg_size, header_type, tscp, cpu, tsc_offset):
-    header = {}
-    header['size'] = msg_size
-    header['header_type'] = header_type
-    header['tscp'] = tscp
-    header['cpu'] = cpu
-    header['tsc_offset'] = tsc_offset
-    return header
+      return {
+          'size': msg_size,
+          'header_type': header_type,
+          'tscp': tscp,
+          'cpu': cpu,
+          'tsc_offset': tsc_offset,
+      }
 
   def parse_message(self):
     ok = True

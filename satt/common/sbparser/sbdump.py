@@ -96,7 +96,7 @@ class sideband_stdin(sideband_parser_input):
             return False
 
     def eof(self):
-        return False if self.last_len_ else True
+        return not self.last_len_
 
     def bad(self):
         # return ferror(stdin)
@@ -253,7 +253,7 @@ class schedule_dumper(sideband_parser_output):
         self.collect_header_info(header)
         self.threads_[tid] = pid
         self.start_thread_[header['cpu']] = tid
-        for t in self.start_thread_:
+        for _ in self.start_thread_:
             # self.output_schedule(self.epoc_, t.first, t.second)
             self.output_schedule(self.epoc_, header['cpu'], tid)
 
@@ -313,7 +313,7 @@ class schedule_dumper(sideband_parser_output):
             sys.exit(-7)
 
     def dump_process_names(self):
-        path = self.output_path_ + ".satt"
+        path = f"{self.output_path_}.satt"
         f = open(path, "wb")
         if not f:
             sys.stderr.write("ERRROR: cannot open %s for writing\n" % (path.str()))
@@ -325,7 +325,7 @@ class schedule_dumper(sideband_parser_output):
             name = self.processes_[pid]
 
             name_len = len(name)
-            record = struct.pack('<II'+str(name_len)+'s', tid, pid, name)
+            record = struct.pack(f'<II{name_len}s', tid, pid, name)
             if f.write(record) != None:
                 sys.stderr.write("ERROR: cannot write to output file\n")
                 sys.exit(-6)

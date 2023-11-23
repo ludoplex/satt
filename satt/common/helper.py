@@ -44,7 +44,7 @@ class color:
 
 
 def complete(text, state):
-    item = (glob.glob(text + '*') + [None])[state]
+    item = (glob.glob(f'{text}*') + [None])[state]
     if os.path.isdir(item):
         item += os.path.sep
     return item
@@ -66,8 +66,7 @@ class SatHelper:
     #  Load Trace Build info from the file
     #
     def getTraceBuildInfo(self):
-        build_info = pickle.load(open(self._trace_folder + "/build_info.p", "rb"))
-        return build_info
+        return pickle.load(open(f"{self._trace_folder}/build_info.p", "rb"))
 
     # Calculate folder hash from trace's build info
     #

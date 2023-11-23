@@ -47,9 +47,7 @@ class Status(object):
         self.READY = 0
 
     def getDbConfig(self, key):
-        if not key in self.dbconfig:
-            return None
-        return self.dbconfig[key]
+        return None if key not in self.dbconfig else self.dbconfig[key]
 
     def _printInitConfigHelp(self):
         print "ERROR!"
@@ -99,9 +97,7 @@ class Status(object):
                             "values (%s, %s, %s, %s, now(), %s, %s) RETURNING id",
                             (filename, 'Queueing', 0, '-', self.QUEUE, trace_file_name, ))
         self.conn.commit()
-        insert_id = self.cursor.fetchone()[0]
-
-        return insert_id
+        return self.cursor.fetchone()[0]
 
     def get_file_by_id(self, trace_id):
         self.cursor.execute("SELECT info from public.traces where id=%s", (trace_id,))
@@ -136,7 +132,7 @@ class Status(object):
                             "and table_schema=%s)", ('info', schema,))
         res = self.cursor.fetchone()
         if res[0]:
-            self.cursor.execute("SELECT value from " + schema + ".info WHERE key = 'TSC_TICK'")
+            self.cursor.execute(f"SELECT value from {schema}.info WHERE key = 'TSC_TICK'")
             data = self.cursor.fetchone()[0]
         return int(data)
 
@@ -145,13 +141,12 @@ class Status(object):
         self.cursor.execute("select id from public.traces")
         traces = self.cursor.fetchall()
         for t in traces:
-            schema = 't' + str(t[0])
+            schema = f't{str(t[0])}'
             self.cursor.execute("SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_schema = %s AND " +
                                 "table_name = 'ins');", (schema, ))
 
-            ns = self.cursor.fetchone()[0]
-            if ns:
-                self.cursor.execute("select ts from " + schema + ".ins order by id desc limit 1;")
+            if ns := self.cursor.fetchone()[0]:
+                self.cursor.execute(f"select ts from {schema}.ins order by id desc limit 1;")
                 ts = self.cursor.fetchone()[0]
                 tsc_tick = self._getTscTick(schema)
 
@@ -201,7 +196,7 @@ class Status(object):
         return
 
     def remove_column(self, table, column):
-        self.cursor.execute("ALTER TABLE " + table + " DROP COLUMN IF EXISTS " + column + ";")
+        self.cursor.execute(f"ALTER TABLE {table} DROP COLUMN IF EXISTS {column};")
         self.conn.commit()
         return
 

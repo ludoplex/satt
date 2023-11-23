@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 '''
+
 import os
 from subprocess import call
 import uuid
@@ -27,7 +28,7 @@ import glob
 #      -bin
 # Detect SAT HOME DIR
 SAT_HOME = os.environ.get('SAT_HOME')
-BIN_PATH = os.path.realpath(SAT_HOME + '/bin/')
+BIN_PATH = os.path.realpath(f'{SAT_HOME}/bin/')
 
 status = stat.getStatus()
 
@@ -76,18 +77,21 @@ def process_trace(trace_id):
     status.update_status(trace_id, status.READY)
 
 def _check_ready_to_import(trace_path):
-    if glob.glob(trace_path + "/*.sat0") and glob.glob(trace_path + "/*.satp") and \
-        glob.glob(trace_path + "/*.satmod")  and glob.glob(trace_path + "/*.satsym"):
-        return True
-    return False
+    return bool(
+        glob.glob(f"{trace_path}/*.sat0")
+        and glob.glob(f"{trace_path}/*.satp")
+        and glob.glob(f"{trace_path}/*.satmod")
+        and glob.glob(f"{trace_path}/*.satsym")
+    )
 
 # 2.nd step to process file is to process trace
 def _process_trace(trace_path):
-    devnull = open('/dev/null', 'w')
-    ret_val = call(BIN_PATH + "/sat-process " + trace_path, shell=True, stdout=devnull)
-    if ret_val == 255:
-        return False
-    devnull.close()
+    with open('/dev/null', 'w') as devnull:
+        ret_val = call(
+            f"{BIN_PATH}/sat-process {trace_path}", shell=True, stdout=devnull
+        )
+        if ret_val == 255:
+            return False
     return True
 
 
@@ -116,14 +120,17 @@ def import_trace_to_server(trace_id):
     trace_file = status.get_file_by_id(trace_id)
     status.update_status(trace_id, status.UNZIP)
     try:
-        devnull = open('/dev/null', 'w')
-        trace_path = os.path.dirname(os.path.abspath(trace_file))
-        ret_val = call("cd " + trace_path + "; tar xvzf " + trace_file, shell=True, stdout=devnull)
-        if ret_val != 0:
-            status.update_status(trace_id, status.FAILED, 'Untar Failed ' + trace_file)
-            shutil.rmtree(trace_path)
-            raise
-        devnull.close()
+        with open('/dev/null', 'w') as devnull:
+            trace_path = os.path.dirname(os.path.abspath(trace_file))
+            ret_val = call(
+                f"cd {trace_path}; tar xvzf {trace_file}",
+                shell=True,
+                stdout=devnull,
+            )
+            if ret_val != 0:
+                status.update_status(trace_id, status.FAILED, f'Untar Failed {trace_file}')
+                shutil.rmtree(trace_path)
+                raise
     except:
         return False
 

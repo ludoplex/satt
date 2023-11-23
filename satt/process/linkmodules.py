@@ -50,8 +50,12 @@ class LinkModules:
 
     def getModulesFromSb(self, trace_folder):
         # Get module info from Sideband
-        p = subprocess.Popen(self.sideband_dump_bin + ' < ' + trace_folder + '/sideband.bin',
-                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen(
+            f'{self.sideband_dump_bin} < {trace_folder}/sideband.bin',
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
         modules = {}
         for line in iter(p.stdout.readline, ''):
             if "module" in line:
@@ -77,42 +81,34 @@ class LinkModules:
         os.chdir(self.kernel_modules_path)
         subprocess.call(["adb", "pull", "/data/sat.ko"])
 
-        if os.path.isfile(self.kernel_modules_path + "sat.ko"):
-            if os.path.isfile(self.sat_home + "/kernel-module/sat.ko"):
-                shutil.copy(self.sat_home + "/kernel-module/sat.ko", self.kernel_modules_path)
+        if os.path.isfile(f"{self.kernel_modules_path}sat.ko"):
+            if os.path.isfile(f"{self.sat_home}/kernel-module/sat.ko"):
+                shutil.copy(f"{self.sat_home}/kernel-module/sat.ko", self.kernel_modules_path)
         os.chdir(curdir)
 
     def getModulesLists(self):
-        # Get list of modules from self.kernel_modules_path
-        modules_in_fs = {}
         curdir = os.getcwd()
         os.chdir(self.kernel_modules_path)
         kernel_modules = glob.glob("*.ko")
-        for km in kernel_modules:
-            modules_in_fs[km.lower().replace('-', '_')[:-3]] = km
+        modules_in_fs = {
+            km.lower().replace('-', '_')[:-3]: km for km in kernel_modules
+        }
         os.chdir(curdir)
 
         return kernel_modules, modules_in_fs
 
     def createSystemMapLd(self):
-        #
-        # Create system.map.ld for the linking
-        #
-        system_map_ld_file = open(self.linux_kernel_path + "system.map.ld", "w")
-        curdir = os.getcwd()
-        os.chdir(self.linux_kernel_path)
-        systen_map_file = open(self.linux_kernel_path + "System.map")
-        for line in systen_map_file:
-            items = line.split()
-            system_map_ld_file.write("--defsym=" + items[2] + "=0x" + items[0] + "\n")
-        systen_map_file.close()
-        system_map_ld_file.close()
+        with open(f"{self.linux_kernel_path}system.map.ld", "w") as system_map_ld_file:
+            curdir = os.getcwd()
+            os.chdir(self.linux_kernel_path)
+            with open(f"{self.linux_kernel_path}System.map") as systen_map_file:
+                for line in systen_map_file:
+                    items = line.split()
+                    system_map_ld_file.write(f"--defsym={items[2]}=0x{items[0]}" + "\n")
         os.chdir(curdir)
 
     def linkedModulesExists(self):
-        if os.path.isdir(self.kernel_module_target_path):
-            return True
-        return False
+        return bool(os.path.isdir(self.kernel_module_target_path))
 
     def linkModules(self, official, ignore_sat_module=False):
 

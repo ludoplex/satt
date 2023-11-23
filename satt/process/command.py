@@ -131,7 +131,7 @@ class SattProcess:
         self._bin_path = os.path.join(self._sat_home, 'lib', 'post-process')
 
         self._os._trace_path = self._args.TRACE_PATH
-        if self._os._trace_path[-1:] == "/" or self._os._trace_path[-1:] == "\\":
+        if self._os._trace_path[-1:] in ["/", "\\"]:
             self._os._trace_path = self._os._trace_path[:-1]
 
         # If called with absolute path
@@ -212,8 +212,15 @@ class SattProcess:
             #
             extract_vmlinux = os.path.join(kernel_path, 'scripts', 'extract-vmlinux')
             if os.path.isfile(extract_vmlinux) and 'vmlinuz' in os.path.basename(self._os.get_vmlinux_path()):
-                subprocess.call(extract_vmlinux + ' ' + self._os.get_vmlinux_path() + " > " +
-                                os.path.join(self._os._trace_path, 'binaries', 'kernel', 'vmlinux_'), shell=True)
+                subprocess.call(
+                    (
+                        f'{extract_vmlinux} {self._os.get_vmlinux_path()} > '
+                        + os.path.join(
+                            self._os._trace_path, 'binaries', 'kernel', 'vmlinux_'
+                        )
+                    ),
+                    shell=True,
+                )
             else:
                 shutil.copyfile(self._os.get_vmlinux_path(),
                                 os.path.join(self._os._trace_path, 'binaries', 'kernel', 'vmlinux_'))
@@ -227,15 +234,30 @@ class SattProcess:
                 kmod_pattern = '*.ko'
                 for root, dirs, files in os.walk(modules_path):
                     for filename in fnmatch.filter(files, kmod_pattern):
-                        shutil.copyfile(os.path.join(root, filename), os.path.join(self._os._trace_path, 'binaries',
-                                        'kernel', 'modules', os.path.basename(filename)+'_'))
+                        shutil.copyfile(
+                            os.path.join(root, filename),
+                            os.path.join(
+                                self._os._trace_path,
+                                'binaries',
+                                'kernel',
+                                'modules',
+                                f'{os.path.basename(filename)}_',
+                            ),
+                        )
             else:
                 for f in glob.glob(os.path.join(modules_path, '*.ko')):
-                    shutil.copyfile(f, os.path.join(self._os._trace_path, 'binaries',
-                                    'kernel', 'modules', os.path.basename(f)+'_'))
-        # move&rename sat.ko from trace binaries folder to binaries/kernel/modules/sat.ko_
-        if not self._official_build:
-            if not os.path.exists(os.path.join(self._os._trace_path, 'binaries', 'kernel', 'modules', 'sat.ko_')):
+                    shutil.copyfile(
+                        f,
+                        os.path.join(
+                            self._os._trace_path,
+                            'binaries',
+                            'kernel',
+                            'modules',
+                            f'{os.path.basename(f)}_',
+                        ),
+                    )
+        if not os.path.exists(os.path.join(self._os._trace_path, 'binaries', 'kernel', 'modules', 'sat.ko_')):
+            if not self._official_build:
                 if os.path.exists(os.path.join(self._os._trace_path, 'binaries', 'sat.ko')):
                     shutil.move(os.path.join(self._os._trace_path, 'binaries', 'sat.ko'),
                                 os.path.join(self._os._trace_path, 'binaries', 'kernel', 'modules'))
@@ -532,7 +554,7 @@ class SattProcess:
 
     # ===============================================#
     def SatVersionIntoSatstats(self):
-        satstats_file = self._os._trace_path + '/' + self._os._trace_path + '.satstats'
+        satstats_file = f'{self._os._trace_path}/{self._os._trace_path}.satstats'
         ver = envstore.store.get_sat_version()
         f = open(satstats_file, 'w+')
-        f.write('VERSION|' + ver + '|SATT tool version used for post-processing')
+        f.write(f'VERSION|{ver}|SATT tool version used for post-processing')

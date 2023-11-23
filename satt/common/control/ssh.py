@@ -60,10 +60,12 @@ class SshControl(Control):
     def shell_command(self, command, skip_exception=False):
         self._check_ip_address()
         self._debug_print("SshControl::shell_command")
-        ssh = subprocess.Popen([self._ssh_command, "%s%s" %(self._login_id, self._ip_address,), command],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
-                               shell=False)
+        ssh = subprocess.Popen(
+            [self._ssh_command, f"{self._login_id}{self._ip_address}", command],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
         res = ssh.stdout.readlines()
         return self._normalize_shell_output(res)
 
@@ -71,10 +73,16 @@ class SshControl(Control):
         self._check_ip_address()
         self._debug_print("SshControl::get_remote_file")
 
-        p = subprocess.Popen([self._ssh_command, "%s%s" %(self._login_id, self._ip_address,), "cat %s" % (copy_from,)],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              shell=False)
+        p = subprocess.Popen(
+            [
+                self._ssh_command,
+                f"{self._login_id}{self._ip_address}",
+                f"cat {copy_from}",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
         res = p.stdout.read()
         open(copy_to, "wb").write(res)
         return 0
@@ -82,10 +90,16 @@ class SshControl(Control):
     def push_local_file(self, copy_from, copy_to):
         self._check_ip_address()
         self._debug_print("SshControl::push_local_file")
-        p = subprocess.Popen([self._scp_command, "%s" %(copy_from,), "%s%s:%s" % (self._login_id, self._ip_address,copy_to, )],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              shell=False)
+        p = subprocess.Popen(
+            [
+                self._scp_command,
+                f"{copy_from}",
+                f"{self._login_id}{self._ip_address}:{copy_to}",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False,
+        )
         res = p.stdout.read()
         return 0
 

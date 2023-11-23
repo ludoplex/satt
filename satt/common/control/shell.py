@@ -41,11 +41,10 @@ class ShellControl(Control):
         self._debug_print("ShellControl::shell_command")
         if skip_exception:
             return subprocess.check_output(command, shell=True)
-        else:
-            try:
-                return subprocess.check_output(command, shell=True)
-            except Exception as e:
-                return str(e)
+        try:
+            return subprocess.check_output(command, shell=True)
+        except Exception as e:
+            return str(e)
 
     def get_remote_file(self, copy_from, copy_to):
         self._debug_print("ShellControl::get_remote_file")

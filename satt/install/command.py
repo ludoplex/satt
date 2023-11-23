@@ -62,14 +62,14 @@ class SattInstall:
         if self._local_version == '':
             self._local_version == '0.0.0'
 
-        print ("SATT version: " + self._local_version + "\n")
+        print(f"SATT version: {self._local_version}" + "\n")
 
         # Check latest satt version in server for update
         try:
-            if not ' ' in satt_release_server:
+            if ' ' not in satt_release_server:
                 proxy_handler = urllib2.ProxyHandler({})
                 opener = urllib2.build_opener(proxy_handler)
-                resp = opener.open(satt_release_server + '/releases/version.txt')
+                resp = opener.open(f'{satt_release_server}/releases/version.txt')
                 self._server_version = resp.read().rstrip()
         except:
             print ("Can't read version info from SATT server")
@@ -78,14 +78,14 @@ class SattInstall:
             t_serv = tuple(map(int, (self._server_version.split("-")[0].split("."))))
             t_loc = tuple(map(int, (self._local_version.split("-")[0].split("."))))
             if t_serv > t_loc:
-                print ("New version available: " + self._server_version)
+                print(f"New version available: {self._server_version}")
                 resp = raw_input("Update new version (y/N)? ")
                 if len(resp) > 0 and resp[0].lower() == 'y':
                     self._install = False
                     import urllib2
                     proxy_handler = urllib2.ProxyHandler({})
                     opener = urllib2.build_opener(proxy_handler)
-                    link = satt_release_server + '/releases/sat-latest.tgz'
+                    link = f'{satt_release_server}/releases/sat-latest.tgz'
                     try:
                         rf = opener.open(link)
                         with open(os.path.basename(link), "wb") as lf:
@@ -96,7 +96,7 @@ class SattInstall:
                         print ("URL error: ", e.reason, link)
 
                     print ("Extract file")
-                    os.system('tar -xvzf ' + os.path.basename(link))
+                    os.system(f'tar -xvzf {os.path.basename(link)}')
                     envstore.store.set_sat_version(self._server_version + '\n')
                     print ("\nPlease re-run 'bin/satt install' for new satt version")
             else:
@@ -123,9 +123,9 @@ class SattInstall:
 
             for package in satt_python_packages:
                 try:
-                    os.system(virtual_env_pip_path + " install '" + package + "'")
+                    os.system(f"{virtual_env_pip_path} install '{package}'")
                 except Exception as e:
-                    print ("Error installing package " + package)
+                    print(f"Error installing package {package}")
                     print (e)
 
             # Install disassembler from the git
@@ -145,7 +145,7 @@ class SattInstall:
                 with open(sat_backend_requirements) as f:
                     for package in f:
                         try:
-                            os.system(virtual_env_pip_path + " install '" + package + "'")
+                            os.system(f"{virtual_env_pip_path} install '{package}'")
                         except Except as e:
                             print (e)
                             error = True
@@ -175,9 +175,7 @@ class SattInstall:
                         hba_file = os.popen('''sudo -u postgres psql -q -P format=unaligned --command "SHOW hba_file;"''').read()
                         hba_file = hba_file.split('\n')[1]
 
-                        # Permissions check
-                        sat_user = os.system('sudo grep -q "sat" ' + hba_file)
-                        if sat_user:
+                        if sat_user := os.system(f'sudo grep -q "sat" {hba_file}'):
                             os.system('''sudo sed -i 's/local.*all.*postgres.*peer/local   all             postgres                                peer\\nlocal   all             sat                                     trust/' ''' + hba_file)
                             # Restart postgres
                             os.system('''sudo -u postgres psql -q --command "SELECT pg_reload_conf();"''')
@@ -199,20 +197,19 @@ class SattInstall:
         use_sudo = raw_input('Would you like to use sudo rights to add satt support for bash autocompletition [y/n]?\n')
         if use_sudo in ['y','Y','yes','Yes']:
             src_path = os.path.join(self._sat_home, 'conf', 'satt.completion')
-            dest_path = '/etc/bash_completion.d/satt'
             if os.path.exists('/etc/bash_completion.d'):
-                os.system('sudo cp -f ' + src_path + ' ' + dest_path)
+                dest_path = '/etc/bash_completion.d/satt'
+                os.system(f'sudo cp -f {src_path} {dest_path}')
 
     def enable_install_virtualenv(self):
         print("\n**************************************************************")
         print("*** Install python virtual env to <satt>/bin/env")
         print("**************************************************************")
-        # Check if Virtual env has been installed
-        VENV = hasattr(sys, "real_prefix")
-
-        if not VENV:
+        if VENV := hasattr(sys, "real_prefix"):
+            print ("Virtualenv installed")
+        else:
             virtual_env_path = os.path.join(self._sat_home, 'bin', 'env')
-            os.system('virtualenv ' + virtual_env_path + ' > /dev/null')
+            os.system(f'virtualenv {virtual_env_path} > /dev/null')
 
             activate_this_file = os.path.join(virtual_env_path, 'bin', 'activate_this.py')
             if os.path.isfile(activate_this_file):
@@ -222,8 +219,6 @@ class SattInstall:
                     exec(compile(open(activate_this_file, "rb").read(), activate_this_file, 'exec'), dict(__file__=activate_this_file))
             else:
                 print ("ERROR: Virtualenv installation error!")
-        else:
-            print ("Virtualenv installed")
 
     def check_disassembler(self):
         print("\n**************************************************************")
@@ -266,7 +261,7 @@ class SattInstall:
     def _check_and_remove_installed_satt_path(self, satt_symlink_path):
         # Check that there are no multiple SATTs in exec paths
         first_satt_path = subprocess.check_output(['which', 'satt']).strip()
-        if not first_satt_path == satt_symlink_path:
+        if first_satt_path != satt_symlink_path:
             if os.access(os.path.dirname(first_satt_path), os.W_OK):
                 os.remove(first_satt_path)
                 print('Info: removed satt file from {0}'.format(first_satt_path))
@@ -280,18 +275,18 @@ class SattInstall:
         print("*** Add SATT to path")
         print("**************************************************************")
         paths = os.environ['PATH']
-        bin_accessed_paths = []
-        for path in paths.split(":"):
-            if (os.access(path, os.W_OK|os.X_OK|os.R_OK) and
-                not path == envstore.store.get_sat_venv_bin()):
-                bin_accessed_paths.append(path)
-
+        bin_accessed_paths = [
+            path
+            for path in paths.split(":")
+            if os.access(path, os.W_OK | os.X_OK | os.R_OK)
+            and path != envstore.store.get_sat_venv_bin()
+        ]
         # Sort paths by length and install to shortest path
         bin_accessed_paths.sort(key = len)
         if len(bin_accessed_paths):
             satt_symlink_path = os.path.join(bin_accessed_paths[0], 'satt')
             if os.path.exists(satt_symlink_path) or \
-               os.path.islink(satt_symlink_path):
+                   os.path.islink(satt_symlink_path):
                 os.remove(satt_symlink_path)
 
             os.symlink(os.environ['SATT_EXEC'], satt_symlink_path)
@@ -306,15 +301,15 @@ class SattInstall:
                 # Create link to /usr/bin
                 src_path = os.path.join(self._sat_home, 'bin', 'satt')
                 dest_path = '/usr/bin/satt'
-                desc_text = 'Request sudo access to install satt into ' + dest_path
+                desc_text = f'Request sudo access to install satt into {dest_path}'
                 if os.path.lexists(dest_path):
                     if os.readlink(dest_path) != src_path:
                         print (desc_text)
-                        os.system('sudo rm -f ' + dest_path)
-                        os.system('sudo ln -s ' + src_path + ' ' + dest_path)
+                        os.system(f'sudo rm -f {dest_path}')
+                        os.system(f'sudo ln -s {src_path} {dest_path}')
                 else:
                     print (desc_text)
-                    os.system('sudo ln -s ' + src_path + ' ' + dest_path)
+                    os.system(f'sudo ln -s {src_path} {dest_path}')
 
     def build_satt_parser(self):
         print("\n**************************************************************")
