@@ -114,11 +114,7 @@ class BinaryPatch:
                     break
                 for km in kernel_modules:
                     #print dump_orig + " <-> " + km
-                    if method['normalize']:
-                        km_name = km.lower().replace('-', '_')[:-4]
-                    else:
-                        km_name = km[:-4]
-
+                    km_name = km.lower().replace('-', '_')[:-4] if method['normalize'] else km[:-4]
                     if ((method['compare'] == 0 and dump[:-5] == km_name) or
                         (method['compare'] == 1 and km_name.find(dump[:-5], 1) >= 0) or
                        (method['compare'] == 2 and km_name.find(dump[:-5]) >= 0)):
@@ -148,9 +144,7 @@ class BinaryPatch:
         return dump_to_km
 
     def patchedModulesExists(self):
-        if os.path.isdir(self.kernel_module_target_path):
-            return True
-        return False
+        return bool(os.path.isdir(self.kernel_module_target_path))
 
     def patchFile(self, dumpfile, targetfile):
         func_name = ''
@@ -175,8 +169,7 @@ class BinaryPatch:
                     # Continue if not section does not contain symbols
                     continue
                 if section['sh_entsize'] == 0:
-                    err = 'Symbol table "%s" has a sh_entsize of zero!' % (
-                            bytes2str(section.name))
+                    err = f'Symbol table "{bytes2str(section.name)}" has a sh_entsize of zero!'
                     continue
             # Patch file
             dumpfile.seek(0)
@@ -184,7 +177,7 @@ class BinaryPatch:
             targetfile.seek(text_section_file_offset)
             targetfile.write(patch_code)
         except Exception as e:
-            return 'Error: ' + str(e)
+            return f'Error: {str(e)}'
 
         return err
 

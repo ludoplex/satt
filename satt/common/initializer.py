@@ -57,26 +57,26 @@ class Satt:
         envstore.get_instance().set_sat_version(self._satt_version)
 
     def parse_options(self):
-        if len(sys.argv) > 1:
-            if sys.argv[1] == "--version" or sys.argv[1] == "-v":
-                print ("satt version: " + self._satt_version)
-                sys.exit(0)
-            if sys.argv[1] == '--completewords':
-                print (' '.join(sorted(self._options)))
-                sys.exit(0)
-            if sys.argv[1] == '--home':
-                print (self._sat_path)
-                sys.exit(0)
+        if len(sys.argv) <= 1:
+            return
+        if sys.argv[1] in ["--version", "-v"]:
+            print(f"satt version: {self._satt_version}")
+            sys.exit(0)
+        if sys.argv[1] == '--completewords':
+            print (' '.join(sorted(self._options)))
+            sys.exit(0)
+        if sys.argv[1] == '--home':
+            print (self._sat_path)
+            sys.exit(0)
 
     def get_commands(self):
         opt_desc = {}
 
         # glob all commands.py files
         for root, dirs, files in os.walk(os.path.join(self._sat_path, 'satt')):
-            cmd_file = glob.glob(os.path.join(root, 'command.py'))
-            if len(cmd_file) > 0:
+            if cmd_file := glob.glob(os.path.join(root, 'command.py')):
                 key = os.path.basename(os.path.dirname(cmd_file[0]))
-                self._options[key] = 'satt.' + key
+                self._options[key] = f'satt.{key}'
                 f = open(cmd_file[0])
                 while True:
                     line = f.readline()
@@ -88,12 +88,8 @@ class Satt:
         # Create USAGE string
         self._usage_str = ('\nUSAGE: satt [-v|--version] [command]\n Commands:\n')
         for k in sorted(self._options.keys()):
-            self._usage_str += '     ' + k.ljust(15) + ': '
-            if k in opt_desc.keys():
-                self._usage_str += opt_desc[k]
-            else:
-                self._usage_str += '\n'
-
+            self._usage_str += f'     {k.ljust(15)}: '
+            self._usage_str += opt_desc.get(k, '\n')
         # return commands
         return self._options, opt_desc
 

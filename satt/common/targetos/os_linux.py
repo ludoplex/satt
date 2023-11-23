@@ -48,12 +48,12 @@ class LinuxOs(TargetOs):
     def get_vmlinux_path(self):
         self.debug_print("LinuxOs::get_vmlinux_path")
         kern_ver = self._control.shell_command('uname -r').strip()
-        return '/boot/vmlinuz-' + kern_ver
+        return f'/boot/vmlinuz-{kern_ver}'
 
     def get_system_map_path(self):
         self.debug_print("LinuxOs::get_system_map_path")
         kern_ver = platform.release()
-        return '/boot/System.map-' + kern_ver
+        return f'/boot/System.map-{kern_ver}'
 
     def get_name(self):
         self.debug_print("LinuxOs::get_name")

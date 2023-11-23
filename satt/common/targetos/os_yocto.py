@@ -113,18 +113,17 @@ class YoctoOs(TargetOs):
                 for subdir in directors:
                     root, dirs, files = os.walk(os.path.join(target_pkg_path, subdir)).next()
                     tmp_pkgs = filter(lambda k: '-dbg' in k, files)
-                    pkgs.extend([subdir + '/' + s for s in tmp_pkgs])
+                    pkgs.extend([f'{subdir}/{s}' for s in tmp_pkgs])
             pkgs_len = len(pkgs)
             pkgs_count = 0
             print('Unpack .deb debug packages:')
             for pkg in pkgs:
                 # TODO create cross compatible shell_comman_api android, linux, chrome os etc
                 checksum_line = subprocess.check_output([md5_cmd, os.path.join(target_pkg_path, pkg)]).strip()
-                match = re.search("([0-9a-fA-F]{32}) (.*)", checksum_line)
-                if match:
+                if match := re.search("([0-9a-fA-F]{32}) (.*)", checksum_line):
                     checksum = match.group(1)
-                    if not checksum in self._package_hashes:
-                        os.system('dpkg -x ' + os.path.join(target_pkg_path, pkg) + ' ' + target_build_path)
+                    if checksum not in self._package_hashes:
+                        os.system(f'dpkg -x {os.path.join(target_pkg_path, pkg)} {target_build_path}')
                         self._package_hashes.append(checksum)
                 pkgs_count = pkgs_count + 1
                 # Print progress bar kind of
@@ -133,15 +132,16 @@ class YoctoOs(TargetOs):
             print('Done')
             pickle.dump(self._package_hashes, open(satt_pkg_cache_file, 'wb'), pickle.HIGHEST_PROTOCOL)
         else:
-            print("ERROR!!!!: Path does not exists, where debug symbol " + pkgtype + " packages should be !!!")
+            print(
+                f"ERROR!!!!: Path does not exists, where debug symbol {pkgtype} packages should be !!!"
+            )
             print("Continuing without debug symbols, only interface functions will be visible!!!")
             time.sleep(5)
 
     def get_debug_paths(self):
         #Return path where debug ipks were extracted (see copy_binaries)
         target_build_path = envstore.store.get_variable('sat_target_build')
-        target_debug_build_path = os.path.join(target_build_path, 'usr', 'lib', '.debug')
-        return target_debug_build_path
+        return os.path.join(target_build_path, 'usr', 'lib', '.debug')
 
     # Methods for CONFIG
     # ##################

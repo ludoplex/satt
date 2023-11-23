@@ -52,11 +52,13 @@ class PanicLogger(Logger):
                                   required=False, default=0)
         self.args = self._parser.parse_args()
 
-        self._kernel_module_parameters += " panic_tracer=" + str(self.args.panic)
-        self._kernel_module_parameters += " panic_sideband=" + str(self.args.sideband)
-        self._kernel_module_parameters += " panic_gbuffer=" + str(self.args.gbuffer)
-        self._kernel_module_parameters += " exclude_userspace=" + str(self.args.userspace)
-        self._kernel_module_parameters += " exclude_kernel=" + str(self.args.kernel)
+        self._kernel_module_parameters += f" panic_tracer={str(self.args.panic)}"
+        self._kernel_module_parameters += f" panic_sideband={str(self.args.sideband)}"
+        self._kernel_module_parameters += f" panic_gbuffer={str(self.args.gbuffer)}"
+        self._kernel_module_parameters += (
+            f" exclude_userspace={str(self.args.userspace)}"
+        )
+        self._kernel_module_parameters += f" exclude_kernel={str(self.args.kernel)}"
 
     def initialize(self):
         self._debug_print("PanicLogger::initialize")

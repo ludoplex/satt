@@ -58,12 +58,8 @@ class SattDevel:
     def __init__(self):
         self._sat_home = envstore.store.get_sat_home()
         self._variables = envstore.store.get_current()
-        param1 = ''
-        params = []
-        if len(sys.argv) > 2:
-            param1 = sys.argv[2]
-        if len(sys.argv) > 3:
-            params = sys.argv[3:]
+        param1 = sys.argv[2] if len(sys.argv) > 2 else ''
+        params = sys.argv[3:] if len(sys.argv) > 3 else []
         self._scripts = {'compile-parser': ScriptData('Compile post-process parser fron source code\n',
                                                       (os.path.join(self._sat_home, 'satt', 'devel', 'compile_parser.py') +
                                                        ' ' + param1 + ' '.join(params) )),

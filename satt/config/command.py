@@ -119,8 +119,18 @@ class SattConfig:
     # ===============================================#
     def set_trace_destination(self):
         self._variables['sat_trace_logging_method'] = 'RAM'
-        print ('Autoselect trace destination: ' + helper.color.BOLD +
-               self._variables['sat_trace_logging_method'] + helper.color.END + '\n')
+        print(
+            (
+                (
+                    (
+                        f'Autoselect trace destination: {helper.color.BOLD}'
+                        + self._variables['sat_trace_logging_method']
+                    )
+                    + helper.color.END
+                )
+                + '\n'
+            )
+        )
         # methods = ['RAM', 'USB3']
         # h = helper.get_instance()
         # if h.pti_available():

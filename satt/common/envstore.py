@@ -130,10 +130,7 @@ class EnvStore:
             return False
 
     def get_variable(self, key):
-        if key in self._variables.keys():
-            return self._variables[key]
-        else:
-            return None
+        return self._variables[key] if key in self._variables.keys() else None
 
     def get_sat_home(self):
         return self._sat_home

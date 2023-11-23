@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 '''
+
 import os
 import sys
 import psycopg2
@@ -47,7 +48,7 @@ else:
     app = Flask(__name__)
 
 UPLOAD_FOLDER = os.path.join(SAT_HOME, 'satt', 'visualize', 'backend', 'tmp')
-ALLOWED_EXTENSIONS = set(['tgz'])
+ALLOWED_EXTENSIONS = {'tgz'}
 
 status = stat.getStatus()
 
@@ -83,10 +84,11 @@ def teardown_db(exception):
     if db is not None:
         db.close()
 
-dthandler = lambda obj: (
-    obj.isoformat()
-    if isinstance(obj, datetime.datetime) or isinstance(obj, datetime.date)
-    else None)
+dthandler = (
+    lambda obj: obj.isoformat()
+    if isinstance(obj, (datetime.datetime, datetime.date))
+    else None
+)
 
 # Work Queues
 if not sys.platform.startswith('win'):
@@ -126,11 +128,7 @@ def screenshot(trace_id):
 
 
 def get_or_create_file(chunk, dst):
-    if chunk == 0:
-        f = file(dst, 'wb')
-    else:
-        f = file(dst, 'ab')
-    return f
+    return file(dst, 'wb') if chunk == 0 else file(dst, 'ab')
 
 
 def allowed_file(filename):
@@ -145,7 +143,7 @@ def upload_resume():
     if (flowCurrentChunkSize and flowFilename):
         filename = secure_filename(flowFilename)
         chunk = int(request.args.get('flowChunkNumber'))
-        chunkname = os.path.join(UPLOAD_FOLDER, filename + '_' + str(chunk))
+        chunkname = os.path.join(UPLOAD_FOLDER, f'{filename}_{chunk}')
         if (os.path.isfile(chunkname)):
             if (os.path.getsize(chunkname) == int(flowCurrentChunkSize)):
                 return json.dumps({"OK": 1})
@@ -224,7 +222,7 @@ def admin_view(endpoint):
 
 @app.route('/trace/<string:path>/<string:endpoint>', methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE'])
 def trace(path, endpoint):
-    return app.send_static_file(path + '/' + endpoint)
+    return app.send_static_file(f'{path}/{endpoint}')
 
 
 # Helper to get tsc tick
@@ -261,8 +259,7 @@ def getBookmarks():
 @app.route('/api/1/bookmark/<int:bookmarkId>', methods=['GET'])
 def getBookmarksById(bookmarkId):
     named_cur.execute("select * from public.bookmark where id = %s", (bookmarkId,))
-    data = named_cur.fetchone()
-    if data:
+    if data := named_cur.fetchone():
         return json.dumps(data)
     else:
         return jsonify(error=404, text='Bookmark was not found!'), 404
@@ -329,17 +326,16 @@ def traceinfo(traceId):
 #   and merge only after that timestamps. So that three formation is kept
 def merge_insflow_overflow_sections(old_rows,new_rows):
     ret_rows = []
-    if len(old_rows) > 0:
-        old_start_ts = old_rows[-1][1]
-        old_start_duration = old_rows[-1][3] + old_rows[-1][4]
-        old_end = old_start_ts + old_start_duration
-        for r in new_rows:
-            # Filter our functions that should be inside old last function
-            if old_end <= r[1]:
-               ret_rows = ret_rows + [r]
-        return old_rows + ret_rows
-    else:
+    if len(old_rows) <= 0:
         return old_rows + new_rows
+    old_start_ts = old_rows[-1][1]
+    old_start_duration = old_rows[-1][3] + old_rows[-1][4]
+    old_end = old_start_ts + old_start_duration
+    for r in new_rows:
+        # Filter our functions that should be inside old last function
+        if old_end <= r[1]:
+           ret_rows = ret_rows + [r]
+    return old_rows + ret_rows
 
 @app.route('/api/1/insflownode/<int:traceId>/<string:pid>/<int:start>/<int:end>/<int:level>', methods=['GET', 'POST'])
 def graph_insflownode(traceId, pid, start, end, level):
@@ -945,14 +941,22 @@ def getFullGraphPerCpu(schema, cpu, start_time, end_time, time_slice):
     row_count = -1
     new_row = -1
     for row in results:
-        if not row[0] == new_row:
+        if row[0] != new_row:
             new_row = row[0]
             row_count = row_count + 1
-        if not row[1] in traces:
-            named_cur.execute("SELECT * from "+schema+".tgid where id = %s", (row[1],))
+        if row[1] not in traces:
+            named_cur.execute(f"SELECT * from {schema}.tgid where id = %s", (row[1],))
 
             name = named_cur.fetchone()
-            traces.update({row[1]: {"n":name.name,"id":name.id,"p":name.pid,"tgid":name.tgid,"tid":name.id,"color":name.color,"data":{} }} )
+            traces[row[1]] = {
+                "n": name.name,
+                "id": name.id,
+                "p": name.pid,
+                "tgid": name.tgid,
+                "tid": name.id,
+                "color": name.color,
+                "data": {},
+            }
         traces[row[1]]['data'].update({row_count:row[2]})
     #print row_count
     return traces, row_count
@@ -1331,15 +1335,23 @@ def search_full_lost(traceId,pixels,start_time,end_time):
 ################################################################
 @app.route('/api/1/cbr/<int:traceId>/<int:start_time>/<int:end_time>', methods=['GET', 'POST'])
 def cbr(traceId,start_time,end_time):
-    schema = "t" + str(traceId)
+    schema = f"t{str(traceId)}"
     if end_time == 0:
-        named_cur.execute("""select * from """+schema+""".cbr""")
+        named_cur.execute(f"""select * from {schema}.cbr""")
     else:
-        named_cur.execute("""select * from """+schema+""".cbr where ts >= %s and ts <= %s""",(start_time,end_time,))
+        named_cur.execute(
+            f"""select * from {schema}.cbr where ts >= %s and ts <= %s""",
+            (
+                start_time,
+                end_time,
+            ),
+        )
     rows = named_cur.fetchall()
 
-    r = [dict((named_cur.description[i][0], value) \
-           for i, value in enumerate(row)) for row in rows]
+    r = [
+        {named_cur.description[i][0]: value for i, value in enumerate(row)}
+        for row in rows
+    ]
     return jsonify({"data":r})
 
 if __name__ == '__main__':
